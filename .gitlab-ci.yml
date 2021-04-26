@@ -1,0 +1,42 @@
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  stage: test
+  image: golang:1.14
+  script:
+    - gofmt -e . > /dev/null
+
+build:
+  image: docker:19.03.12
+  stage: build
+  services:
+    - docker:19.03.12-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID"
+
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:1.20
+  variables:
+    K8S_NAMESPACE: mcs-kubernetes-project
+  before_script:
+    # Set kubernetes credentials
+    - export KUBECONFIG=/tmp/kubeconfig
+    - kubectl config set-cluster k8s --insecure-skip-tls-verify=true --server=https://kubernetes.default
+    - kubectl config set-credentials ci --token="$(echo $K8S_CI_TOKEN | base64 -d)"
+    - kubectl config set-context ci --cluster=k8s --user=ci --namespace $K8S_NAMESPACE
+    - kubectl config use-context ci
+  script:
+    - sed -i -e "s,<IMAGE>,$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID,g" .kube/deployment.yaml
+    - kubectl apply -f .kube
+    - kubectl rollout status deployment/mcs-kubernetes-project ||
+      (kubectl rollout undo deployment/mcs-kubernetes-project && return 1)
