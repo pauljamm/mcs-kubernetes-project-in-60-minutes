@@ -4,7 +4,7 @@
 
 1. Регистрируемся в [Mail.ru Cloud Solutions](https://mcs.mail.ru)
 1. Заходим в личный кабинет MCS и создаем кластер Kubernetes.
-В предустановленных сервисах оставляем Ngins Ingress Controller
+В предустановленных сервисах оставляем Nginx Ingress Controller
 1. После создания скачиваем kubeconfig файл и экспортируем его
 
 ```bash
