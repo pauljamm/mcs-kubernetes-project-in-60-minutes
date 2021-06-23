@@ -39,4 +39,4 @@ deploy:
     - sed -i -e "s,<IMAGE>,$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID,g" .kube/deployment.yaml
     - kubectl apply -f .kube
     - kubectl rollout status deployment/mcs-kubernetes-project ||
-      (kubectl rollout undo deployment/mcs-kubernetes-project && return 1)
+      (kubectl rollout undo deployment/mcs-kubernetes-project && exit 1)
